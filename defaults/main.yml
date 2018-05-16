@@ -1,0 +1,12 @@
+sonar_version: 6.7.3
+sonar_download_url: "https://sonarsource.bintray.com/Distribution/sonarqube/sonarqube-{{ sonar_version }}.zip"
+sonar_properties:
+sonar_install_dir: /opt/sonar
+sonar_workspace: /root
+
+sonar_download_validate_certs: True
+sonar_dburl:
+sonar_dbuser:
+sonar_dbuser_password:
+sonar_user: sonar
+sonar_group: sonar

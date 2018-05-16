@@ -1,0 +1,97 @@
+- include_tasks: "install_depends.yml"
+
+- name: Be sure sonar group exists
+  group:
+    name: "{{ sonar_group }}"
+    state: present
+
+- name: Be sure sonar user exists
+  user:
+    name: "{{ sonar_user }}"
+    group: "{{ sonar_group }}"
+    state: present
+
+- name: Unzip Sonar.
+  unarchive:
+    src: "{{ sonar_download_url }}"
+    dest: "{{ sonar_install_dir|dirname }}"
+    validate_certs: "{{ sonar_download_validate_certs }}"
+    remote_src: yes
+  creates: "{{ sonar_install_dir|dirname }}/sonarqube-{{ sonar_version }}/COPYING"
+
+- name: Make sure sonar user have permission on the installation dir
+  file:
+    path: "{{ sonar_install_dir|dirname }}/sonarqube-{{ sonar_version }}"
+    owner: "{{ sonar_user }}"
+    group: "{{ sonar_group }}"
+    recurse: yes
+
+- name: Symlink Sonar
+  file:
+    path: "{{ sonar_install_dir }}"
+    state: link
+    src: "{{ sonar_install_dir|dirname }}/sonarqube-{{ sonar_version }}"
+    force: yes
+
+- name: Symlink sonar bin.
+  file:
+    src: "{{ sonar_install_dir }}/bin/linux-{{ ansible_architecture|replace('_','-') }}/sonar.sh"
+    dest: /usr/bin/sonar
+    state: link
+  register: sonar_symlink
+
+- name: Be sure the init script run as sonar user
+  lineinfile:
+    path: "{{ sonar_install_dir }}/bin/linux-{{ ansible_architecture|replace('_','-') }}/sonar.sh"
+    regexp: '^#RUN_AS_USER=$'
+    line: "RUN_AS_USER=sonar"
+
+- name: Set fact sonar database settings
+  set_fact:
+    sonar_database_settings: |
+      sonar.jdbc.username={{ sonar_dbuser }}
+      sonar.jdbc.password={{ sonar_dbuser_password }}
+      sonar.jdbc.url={{ sonar_dburl }}
+  when: sonar_dbuser and sonar_dbuser_password and sonar_dburl
+
+- name: Deploy the sonar.properties file
+  copy:
+    content: |
+      {{ sonar_database_settings|default('') }}
+      {{ sonar_properties }}
+    dest: "{{ sonar_install_dir }}/conf/sonar.properties"
+    backup: yes
+  when: sonar_dburl
+
+- name: Add sonar as init script for service management.
+  file:
+    src: "{{ sonar_install_dir }}/bin/linux-{{ ansible_architecture|replace('_','-') }}/sonar.sh"
+    dest: /etc/init.d/sonar
+    state: link
+  when: "ansible_service_mgr != 'systemd'"
+
+- name: Copy SonarQube systemd unit file into place (for systemd systems).
+  template:
+    src: sonar.unit.j2
+    dest: /etc/systemd/system/sonar.service
+    owner: root
+    group: root
+    mode: 0755
+  when: "ansible_service_mgr == 'systemd'"
+
+- name: Ensure Sonar is running and set to start on boot.
+  service:
+    name: sonar
+    state: started
+    enabled: yes
+
+- name: Allow Sonar time to build on first start.
+  pause:
+    seconds: 180
+  when: sonar_symlink.changed
+
+- name: Make sure Sonar is responding on the configured port.
+  wait_for:
+    port: 9000
+    delay: 3
+    timeout: 300

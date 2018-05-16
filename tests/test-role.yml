@@ -1,0 +1,66 @@
+- name: Bring up docker container
+  hosts: localhost
+  gather_facts: false
+  vars:
+    ct_name: test_role_sonar
+    ct_image: "ubuntu:16.04"
+    ct_command: "sleep infinity"
+    work_dir: "/workdir"
+
+  tags:
+    - test
+    - launch_container
+
+  tasks:
+    - docker_container:
+        name: "{{ ct_name }}"
+        hostname: "{{ ct_name }}"
+        image: "{{ ct_image }}"
+        volumes: ".:{{ work_dir }}"
+        # this optin always recreate ct - is it a bug?
+        # working_dir: "/workdir"
+        command: "{{ ct_command }}"
+        state: started
+        recreate: no
+    - add_host:
+        name: "{{ ct_name }}"
+
+- hosts: test_role_sonar
+  remote_user: root
+  connection: docker
+  gather_facts: no
+  tags:
+    - test
+    - install_base
+  tasks:
+    - raw: "apt update && apt -y install python unzip zip bzip2 curl apt-transport-https"
+
+- hosts: test_role_sonar
+  remote_user: root
+  connection: docker
+  tags:
+    - test
+    - test_role
+  vars:
+    ubuntu_version_codename: xenial
+    work_dir: "/workdir"
+    test_data_dir: "{{ work_dir }}/test-data"
+
+  roles:
+    - sonar
+
+#- name: Shutdown docker container
+#  hosts: localhost
+#  gather_facts: false
+#  vars:
+#    ct_name: test_role_sonar
+#  tags:
+#    - destroy_container
+#
+#  tasks:
+#    - pause:
+#        prompt: "Shuttdown container then continue otherwise abort"
+#
+#    - docker_container:
+#        name: "{{ ct_name }}"
+#        state: absent
