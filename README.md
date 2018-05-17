@@ -9,7 +9,7 @@ Requirements
 The database setup needs to be done first. We need a database host, name, user
 and password and the user is the owner of the database.
 
-If the var `sonar_dbtype` is 'h2' then it will use the internal H2 database
+If the var `sonar_dburl` (see below) is not provided then it will use the internal H2 database
 and ignore all other database settings. This is for test deployment only.
 
 Role Variables
@@ -21,9 +21,10 @@ Role Variables
   https://sonarsource.bintray.com/Distribution/sonarqube/sonarqube-`sonar_version`.zip
   The url to download the sonar archive file
 
-- `sonar_properties` - Required - Default: No Value
+- `sonar_properties` - Optional - Default: No Value. ValueType: multiline string.
   The content of the sonar.properties file. This is sonar server config file.
-  All database connection is defined in here as well.
+  The database settings will get prepended to this variable so you do not need
+  to provide database settings using this var.
 
 - `sonar_install_dir` - Required. Default: /opt/sonar
   The installation directory for sonar server. This will be a symlink to /opt/sonar-`sonar_version`
@@ -62,4 +63,4 @@ BSD
 Author Information
 ------------------
 
-An optional section for the role authors to include contact information, or a website (HTML is not allowed).
+Steve Kieu <steve.kieu@xvt.com.au>
