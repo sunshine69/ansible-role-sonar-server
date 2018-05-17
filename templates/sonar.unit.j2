@@ -9,6 +9,8 @@ ExecStop=/usr/bin/sonar stop
 ExecReload=/usr/bin/sonar restart
 PIDFile=/run/SonarQube.pid
 Type=simple
+User={{ sonar_user }}
+Group={{ sonar_group }}
 
 [Install]
 WantedBy=multi-user.target
