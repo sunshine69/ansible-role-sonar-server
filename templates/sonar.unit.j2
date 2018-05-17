@@ -7,10 +7,10 @@ Wants=network-online.target
 ExecStart=/usr/bin/sonar start
 ExecStop=/usr/bin/sonar stop
 ExecReload=/usr/bin/sonar restart
-PIDFile=/run/SonarQube.pid
+PIDFile={{ sonar_install_dir }}/bin/linux-{{ ansible_architecture|replace('_','-') }}/SonarQube.pid
 Type=simple
-User={{ sonar_user }}
-Group={{ sonar_group }}
+User=root
+Group=root
 
 [Install]
 WantedBy=multi-user.target
